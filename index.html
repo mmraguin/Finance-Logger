@@ -355,7 +355,7 @@ Rules: amount always positive. Default payment_method to GCash if unclear. Pick 
   const mimeType = dataUrl.split(';')[0].split(':')[1];
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:mimeType,data:base64}}]}], generationConfig:{maxOutputTokens:300,temperature:0.1} })
     });
