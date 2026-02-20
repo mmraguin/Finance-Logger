@@ -289,7 +289,9 @@ let currentMode    = 'expense';
 let parsedData     = {};
 let lastFailedRows = null;
 
-localStorage.getItem('sheetId') || localStorage.setItem('sheetId','15G5abgmSIE-kYkh0LI3FtWXPO2DlvVgUnWmAcn36nE0');
+localStorage.getItem('gemini')    || localStorage.setItem('gemini',    'AIzaSyCEYTXVwfZBN6oa57sdOAmT-qjHhe9ZHAI');
+localStorage.getItem('sheetId')   || localStorage.setItem('sheetId',   '15G5abgmSIE-kYkh0LI3FtWXPO2DlvVgUnWmAcn36nE0');
+localStorage.getItem('googleApi') || localStorage.setItem('googleApi', 'AIzaSyCiSD2BgxFmsEXVPK_CUUB5T6vJUS23ZA8');
 
 function loadSettings() {
   document.getElementById('s-gemini').value    = localStorage.getItem('gemini')    || '';
