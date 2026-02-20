@@ -199,6 +199,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 /* ── TRANSFER NOTICE ── */
 .transfer-notice { background: var(--transfer-dim); border: 1px solid rgba(184,169,224,0.2); border-radius: 12px; padding: 10px 14px; font-size: 12px; color: var(--transfer); }
 
+/* ── REVIEW BUTTONS ── */
+.review-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.review-btn { padding: 5px 12px; border-radius: 20px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.review-btn:hover { border-color: var(--accent); color: var(--accent); }
+.review-btn.active { background: var(--accent); border-color: var(--accent); color: #051010; font-weight: 600; font-family: 'DM Sans', sans-serif; }
+
 /* ── SETTINGS ── */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
 .overlay.open { display: flex; }
@@ -336,7 +342,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 const SHEET_TAB = 'Log';
 const WEBHOOK   = 'https://script.google.com/macros/s/AKfycbwfl8-4sVKehGHxjGJirXVOYoTOZyinPFijxhQxJVVZQbWFaeBv53hr5HHuoPzYCg5z-Q/exec';
-const GEMINI_KEY_DEFAULT    = 'AIzaSyAANRw1Y4A3vv2B13vA3lnbWr5iUYn9QPI';
 const SHEET_ID_DEFAULT      = '15G5abgmSIE-kYkh0LI3FtWXPO2DlvVgUnWmAcn36nE0';
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
@@ -357,7 +362,7 @@ const CATEGORY_MAP = {
 const INCOME_CATS     = ['Salary','IOU'];
 const EXPENSE_CATS    = Object.keys(CATEGORY_MAP).filter(c => !INCOME_CATS.includes(c));
 const PAYMENT_METHODS = ['GCash','Maribank','BDO','BPI','Maya','UnionBank','UnionBank Credit','Cash'];
-const REVIEW_OPTIONS  = ['Myself','Others','Both','Other'];
+const REVIEW_OPTIONS  = ['Myself','Others','Both'];
 
 // Merchant intelligence: keyword → { paymentMethod, category (optional) }
 const MERCHANT_RULES = [
@@ -386,8 +391,7 @@ let pendingRows     = null;
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
-localStorage.getItem('gemini')    || localStorage.setItem('gemini',    GEMINI_KEY_DEFAULT);
-localStorage.getItem('sheetId')   || localStorage.setItem('sheetId',   SHEET_ID_DEFAULT);
+localStorage.getItem('sheetId') || localStorage.setItem('sheetId', SHEET_ID_DEFAULT);
 
 function loadSettings() {
   document.getElementById('s-gemini').value    = localStorage.getItem('gemini')    || '';
@@ -900,37 +904,89 @@ function buildManualForm(mode) {
 
   if (mode === 'transfer') {
     c.innerHTML =
-      row('Amount', `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)">`) +
+      row('Amount', `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)" onblur="resolveAmt(this)">`) +
       row('Date',   `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
       row('From',   selWith('m-from', PAYMENT_METHODS, lastMethod, 'onchange="syncTransferTo()"')) +
       row('To',     sel('m-to', PAYMENT_METHODS.filter(p=>p!==lastMethod))) +
       row('Memo',   text('m-memo','Optional'));
   } else {
     c.innerHTML =
-      row('Type',     selWith('m-type',['Expense','Income'],'Expense','onchange="updateManualCats()"')) +
-      row('Amount',   `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)">`) +
+      row('Type',     selWith('m-type',['Expense','Income','Balance'],'Expense','onchange="updateManualCats()"')) +
+      row('Amount',   `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)" onblur="resolveAmt(this)">`) +
       row('Date',     `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
       row('Merchant', `<input class="form-ctrl" id="m-merchant" type="text" placeholder="Who or where" oninput="applyManualMerchantRules(this.value)">`) +
       row('Via',      selWith('m-payment', PAYMENT_METHODS, lastMethod)) +
       row('Category', `<select class="form-select-ctrl" id="m-category" onchange="updateManualGroup()">${EXPENSE_CATS.map(c=>`<option>${c}</option>`).join('')}</select>`) +
       row('Group',    `<input class="form-readonly" id="m-group" readonly value="${CATEGORY_MAP[EXPENSE_CATS[0]]||''}">`) +
       row('Memo',     text('m-memo','Optional')) +
-      row('Review',   sel('m-review', REVIEW_OPTIONS));
+      row('Review', `<div class="review-btns" id="review-btns">
+        ${REVIEW_OPTIONS.map((o,i) => `<button type="button" class="review-btn${i===0?' active':''}" onclick="selectReview(this,'${o}')">${o}</button>`).join('')}
+      </div>`);
 
     // Auto-focus amount
     setTimeout(() => document.getElementById('m-amount')?.focus(), 100);
   }
 }
 
+function selectReview(btn, val) {
+  document.querySelectorAll('.review-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function getReviewVal() {
+  const active = document.querySelector('.review-btn.active');
+  return active ? active.textContent : 'Myself';
+}
+
 function fmtAmt(el) {
-  const raw   = el.value.replace(/[^0-9.]/g,'');
+  const val = el.value;
+  // If expression (contains operator), just update preview title
+  if (/[+\-*/]/.test(val)) {
+    const result = evalExpr(val);
+    el.title = result !== null
+      ? `= ${result.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+      : '';
+    return;
+  }
+  // Pure number — format with commas
+  el.title = '';
+  const raw   = val.replace(/[^0-9.]/g, '');
   const parts = raw.split('.');
-  const int   = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  const int   = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const caret = el.selectionStart;
+  const prev  = el.value.length;
   el.value    = parts.length > 1 ? `${int}.${parts[1].slice(0,2)}` : int;
 }
 
+function evalExpr(str) {
+  // Safe eval: only allow numbers, operators, dots, spaces, parens
+  const cleaned = str.replace(/,/g, '').trim();
+  if (!/^[0-9+\-*/.() ]+$/.test(cleaned)) return null;
+  try {
+    const result = Function('"use strict"; return (' + cleaned + ')')();
+    return (typeof result === 'number' && isFinite(result)) ? Math.round(result * 100) / 100 : null;
+  } catch { return null; }
+}
+
+function resolveAmt(el) {
+  // Called on blur — resolve expression to final number
+  const val = el.value.trim();
+  if (!val) return;
+  const result = evalExpr(val);
+  if (result !== null) {
+    el.value = result.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+    el.dataset.preview = '';
+    el.title = '';
+  }
+}
+
 function getRawAmt(id) {
-  return parseFloat((document.getElementById(id)?.value||'0').replace(/,/g,''))||0;
+  const el  = document.getElementById(id);
+  if (!el) return 0;
+  // Try to evaluate first in case not yet resolved
+  const result = evalExpr(el.value);
+  if (result !== null) return result;
+  return parseFloat(el.value.replace(/,/g,'')) || 0;
 }
 
 function syncTransferTo() {
@@ -955,7 +1011,19 @@ function applyManualMerchantRules(val) {
 
 function updateManualCats() {
   const type = document.getElementById('m-type').value;
-  const cats  = type === 'Income' ? INCOME_CATS : EXPENSE_CATS;
+  const catRow = document.getElementById('m-category')?.closest('.form-row-inner');
+  const grpRow = document.getElementById('m-group')?.closest('.form-row-inner');
+  const revRow = document.getElementById('m-review')?.closest('.form-row-inner');
+  if (type === 'Balance') {
+    if (catRow) catRow.style.display = 'none';
+    if (grpRow) grpRow.style.display = 'none';
+    if (revRow) revRow.style.display = 'none';
+    return;
+  }
+  if (catRow) catRow.style.display = '';
+  if (grpRow) grpRow.style.display = '';
+  if (revRow) revRow.style.display = '';
+  const cats = type === 'Income' ? INCOME_CATS : EXPENSE_CATS;
   document.getElementById('m-category').innerHTML = cats.map(c=>`<option>${c}</option>`).join('');
   updateManualGroup();
 }
@@ -993,16 +1061,22 @@ async function submitManual() {
     const date     = document.getElementById('m-date').value;
     const merchant = document.getElementById('m-merchant').value;
     const payment  = document.getElementById('m-payment').value;
-    const category = document.getElementById('m-category').value;
     const memo     = document.getElementById('m-memo').value;
-    const review   = document.getElementById('m-review').value;
     if (!amount || !date) { alert('Amount and date are required.'); return; }
-    const amt   = type==='Income' ? Math.abs(amount) : -Math.abs(amount);
-    const group = CATEGORY_MAP[category] || '';
-    const sd    = toSheetDate(date);
-    rows = [[ts, type, amt, sd, merchant, payment, category, group, memo, review]];
-    d    = { type, amount, category, group, paymentMethod:payment, merchant };
-    localStorage.setItem('lastPaymentMethod', payment);
+    const sd = toSheetDate(date);
+    if (type === 'Balance') {
+      rows = [[ts, 'Balance', Math.abs(amount), sd, `${payment} Balance`, payment, '', '', memo, '']];
+      d    = { type:'Balance', amount, paymentMethod:payment, merchant:`${payment} Balance` };
+      localStorage.setItem('lastPaymentMethod', payment);
+    } else {
+      const category = document.getElementById('m-category').value;
+      const review   = getReviewVal();
+      const amt   = type==='Income' ? Math.abs(amount) : -Math.abs(amount);
+      const group = CATEGORY_MAP[category] || '';
+      rows = [[ts, type, amt, sd, merchant, payment, category, group, memo, review]];
+      d    = { type, amount, category, group, paymentMethod:payment, merchant };
+      localStorage.setItem('lastPaymentMethod', payment);
+    }
   }
 
   haptic('medium');
