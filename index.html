@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Log</title>
+<title>YNAB</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -156,7 +156,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 <body>
 <div class="app">
   <div class="topbar">
-    <div class="wordmark">lo<span>g</span></div>
+    <div class="wordmark">YNA<span>B</span></div>
     <div class="gear-btn" onclick="openSettings()">⚙</div>
   </div>
 
@@ -289,9 +289,9 @@ let currentMode    = 'expense';
 let parsedData     = {};
 let lastFailedRows = null;
 
-localStorage.getItem('gemini')    || localStorage.setItem('gemini',    'AIzaSyCEYTXVwfZBN6oa57sdOAmT-qjHhe9ZHAI');
-localStorage.getItem('sheetId')   || localStorage.setItem('sheetId',   '15G5abgmSIE-kYkh0LI3FtWXPO2DlvVgUnWmAcn36nE0');
-localStorage.getItem('googleApi') || localStorage.setItem('googleApi', 'AIzaSyCiSD2BgxFmsEXVPK_CUUB5T6vJUS23ZA8');
+localStorage.setItem('gemini',    'AIzaSyCEYTXVwfZBN6oa57sdOAmT-qjHhe9ZHAI');
+localStorage.setItem('sheetId',   '1drs7PNpxLeatQKMI5pT1zS9Ug6JsGtpWAiBUCjoKHME');
+localStorage.setItem('googleApi', 'AIzaSyAIWrvjahe4igTASSbYipu8hUU_fHTOazM');
 
 function loadSettings() {
   document.getElementById('s-gemini').value    = localStorage.getItem('gemini')    || '';
@@ -430,9 +430,11 @@ function buildManualForm(mode) {
   const text = (id,ph,type='text') => `<input class="form-ctrl" id="${id}" type="${type}" placeholder="${ph}">`;
   const sel  = (id,opts,onch='') => `<select class="form-select-ctrl" id="${id}" ${onch}>${opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
 
+  const amountInput = (id) => `<input class="form-ctrl" id="${id}" type="text" inputmode="decimal" placeholder="0.00" oninput="formatAmountInput(this)">`;
+
   if (mode === 'transfer') {
     c.innerHTML =
-      row('Amount', text('m-amount','0.00','number')) +
+      row('Amount', amountInput('m-amount')) +
       row('Date',   `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
       row('From',   sel('m-from', PAYMENT_METHODS)) +
       row('To',     sel('m-to',   PAYMENT_METHODS)) +
@@ -440,7 +442,7 @@ function buildManualForm(mode) {
   } else {
     c.innerHTML =
       row('Type',     sel('m-type',['Expense','Income'],'onchange="updateManualCats()"')) +
-      row('Amount',   text('m-amount','0.00','number')) +
+      row('Amount',   amountInput('m-amount')) +
       row('Date',     `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
       row('Merchant', text('m-merchant','Who or where')) +
       row('Via',      sel('m-payment', PAYMENT_METHODS)) +
@@ -449,6 +451,17 @@ function buildManualForm(mode) {
       row('Memo',     text('m-memo','Optional')) +
       row('Review',   sel('m-review', REVIEW_OPTIONS));
   }
+}
+
+function formatAmountInput(el) {
+  const raw = el.value.replace(/[^0-9.]/g, '');
+  const parts = raw.split('.');
+  const int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  el.value = parts.length > 1 ? `${int}.${parts[1].slice(0,2)}` : int;
+}
+
+function getRawAmount(id) {
+  return parseFloat((document.getElementById(id)?.value || '0').replace(/,/g, '')) || 0;
 }
 
 function updateManualCats() {
@@ -467,23 +480,23 @@ async function logTransaction() {
   const d   = parsedData;
   const ts  = new Date().toISOString();
   const amt = d.type==='Income' ? Math.abs(d.amount) : -Math.abs(d.amount);
-  await appendRows([[ts, d.type, amt, d.date, d.merchant, d.paymentMethod, d.category, d.memo, d.review]]);
+  await appendRows([[ts, d.type, amt, d.date, d.merchant, d.paymentMethod, d.category, d.group, d.memo, d.review]]);
 }
 
 async function submitManual() {
   const ts = new Date().toISOString(); let rows = [];
   if (currentMode === 'transfer') {
-    const amount = parseFloat(document.getElementById('m-amount').value);
+    const amount = getRawAmount('m-amount');
     const date   = document.getElementById('m-date').value;
     const from   = document.getElementById('m-from').value;
     const to     = document.getElementById('m-to').value;
     const memo   = document.getElementById('m-memo').value;
     if (!amount||!date) { alert('Amount and date are required.'); return; }
-    rows = [[ts,'Transfer',-amount,date,`To ${to}`,from,'',memo,'Myself'],[ts,'Transfer',amount,date,`From ${from}`,to,'',memo,'Myself']];
+    rows = [[ts,'Transfer',-amount,date,`To ${to}`,from,'','',memo,'Myself'],[ts,'Transfer',amount,date,`From ${from}`,to,'','',memo,'Myself']];
     parsedData = { type:'Transfer', amount, category:'', paymentMethod:from };
   } else {
     const type     = document.getElementById('m-type').value;
-    const amount   = parseFloat(document.getElementById('m-amount').value);
+    const amount   = getRawAmount('m-amount');
     const date     = document.getElementById('m-date').value;
     const merchant = document.getElementById('m-merchant').value;
     const payment  = document.getElementById('m-payment').value;
@@ -492,7 +505,8 @@ async function submitManual() {
     const review   = document.getElementById('m-review').value;
     if (!amount||!date) { alert('Amount and date are required.'); return; }
     const amt = type==='Income' ? Math.abs(amount) : -Math.abs(amount);
-    rows = [[ts,type,amt,date,merchant,payment,category,memo,review]];
+    const group = CATEGORY_MAP[category] || '';
+    rows = [[ts,type,amt,date,merchant,payment,category,group,memo,review]];
     parsedData = { type, amount, category, paymentMethod:payment };
   }
   await appendRows(rows);
