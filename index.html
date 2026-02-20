@@ -493,8 +493,9 @@ function handleFile(e) {
 // ── GEMINI ────────────────────────────────────────────────────────────────────
 
 async function parseWithGemini(dataUrl) {
-  const apiKey = localStorage.getItem('gemini');
-  if (!apiKey) { alert('Add your Gemini API key in Settings first.'); return; }
+  const rawKey = localStorage.getItem('gemini') || '';
+  const apiKey = rawKey.trim().replace(/[^A-Za-z0-9_\-]/g, '');
+  if (!apiKey || apiKey.length < 20) { alert('Gemini API key is missing or invalid. Check Settings.'); return; }
   show('screen-parsing');
 
   const cats  = currentMode === 'income' ? INCOME_CATS.join(', ') : EXPENSE_CATS.join(', ');
@@ -526,6 +527,10 @@ Rules:
     });
 
     const data   = await res.json();
+    if (!res.ok) {
+      console.error('Gemini error:', JSON.stringify(data));
+      throw new Error(`Gemini ${res.status}: ${data?.error?.message || 'unknown'}`);
+    }
     const raw    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
 
