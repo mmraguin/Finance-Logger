@@ -519,7 +519,7 @@ async function appendRows(rows) {
   try {
     const res = await fetch(WEBHOOK, {
       method: 'POST',
-      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ rows })
     });
 
