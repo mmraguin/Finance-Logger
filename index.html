@@ -188,16 +188,52 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 /* ── MANUAL FORM ── */
 .form-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-.form-row-inner { display: grid; grid-template-columns: 76px 1fr; align-items: center; padding: 12px 22px; border-bottom: 1px solid var(--border); min-height: 48px; gap: 12px; }
+.form-row-inner { display: flex; align-items: center; padding: 12px 22px; border-bottom: 1px solid var(--border); min-height: 48px; gap: 12px; }
 .form-row-inner:last-child { border-bottom: none; }
-.form-key { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.form-ctrl { background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); text-align: right; width: 100%; }
+.form-key { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; width: 76px; }
+.form-ctrl { background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); text-align: right; flex: 1; min-width: 0; }
 .form-ctrl::placeholder { color: var(--muted); }
 .form-select-ctrl { background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); text-align: right; width: 100%; cursor: pointer; }
 .form-readonly { background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted); text-align: right; width: 100%; cursor: default; }
 
 /* ── TRANSFER NOTICE ── */
 .transfer-notice { background: var(--transfer-dim); border: 1px solid rgba(184,169,224,0.2); border-radius: 12px; padding: 10px 14px; font-size: 12px; color: var(--transfer); }
+
+
+/* ── NUMPAD ── */
+.numpad-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+.numpad { width: 100%; max-width: 430px; background: var(--surface); border-top: 1px solid var(--border2); padding: 12px 16px 40px; animation: slideUp 0.22s cubic-bezier(0.22,1,0.36,1); }
+.numpad-display { background: var(--bg); border: 1px solid var(--border2); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; min-height: 56px; }
+.numpad-expr { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--text); flex: 1; word-break: break-all; }
+.numpad-result { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); margin-left: 10px; white-space: nowrap; }
+.numpad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.nk { height: 52px; border-radius: 12px; border: none; font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+.nk:active { transform: scale(0.92); }
+.nk-num  { background: var(--surface2); color: var(--text); }
+.nk-num:active  { background: var(--surface3); }
+.nk-op   { background: var(--surface3); color: var(--accent); font-size: 20px; }
+.nk-op:active   { background: var(--border2); }
+.nk-del  { background: var(--surface3); color: var(--text2); font-size: 15px; }
+.nk-done { background: var(--accent); color: #051010; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; }
+.nk-done:active { filter: brightness(1.1); }
+.nk-zero { grid-column: span 2; }
+
+
+/* ── FORM PICKERS ── */
+
+.picker-item { padding: 14px 16px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text); border-radius: 10px; cursor: pointer; transition: background 0.1s; }
+.picker-item:active, .picker-item:hover { background: var(--surface2); }
+.picker-item-active { color: var(--accent); font-weight: 600; }
+.cat-group-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 10px 16px 4px; }
+.cat-item { padding: 12px 16px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text); border-radius: 10px; cursor: pointer; transition: background 0.1s; }
+.cat-item:active, .cat-item:hover { background: var(--surface2); }
+.cat-item-active { color: var(--accent); font-weight: 600; }
+
+.form-val-wrap { display: flex; align-items: center; justify-content: flex-end; flex: 1; }
+.form-picker { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; text-align: right; width: 100%; }
+.form-picker:active { opacity: 0.7; }
+.picker-caret { color: var(--muted); font-size: 16px; line-height: 1; flex-shrink: 0; }
+.form-readonly-val { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted); text-align: right; width: 100%; }
 
 /* ── REVIEW BUTTONS ── */
 .review-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
@@ -638,11 +674,12 @@ function buildReceiptCard() {
       row.innerHTML = `
         <div class="field-key">${f.key}</div>
         <div class="dropdown-wrap" id="dd-wrap-${f.dataKey}">
-          <input class="dropdown-input" id="dd-${f.dataKey}" value="${d[f.dataKey]||''}" placeholder="Type to search…"
+          <input class="dropdown-input" id="dd-${f.dataKey}" value="${d[f.dataKey]||''}" placeholder="Tap to search…"
             autocomplete="off"
-            oninput="filterDropdown('${f.dataKey}', this.value)"
             onfocus="openDropdown('${f.dataKey}')"
-            onkeydown="dropdownKeyNav(event,'${f.dataKey}')">
+            oninput="filterDropdown('${f.dataKey}', this.value)"
+            onkeydown="dropdownKeyNav(event,'${f.dataKey}')"
+            onblur="setTimeout(()=>closeAllDropdowns(),200)">
           ${autoBadge}
           <div class="dropdown-list" id="ddlist-${f.dataKey}" style="display:none"></div>
         </div>`;
@@ -760,7 +797,7 @@ function renderDropdownList(key, options, selected, filter='') {
 
   list.innerHTML = filtered.map((o,i) =>
     `<div class="dropdown-item ${o===selected?'selected':''}" data-idx="${i}" data-val="${o}"
-      onmousedown="selectDropdownItem('${key}','${o}')">${o}</div>`
+      onmousedown="selectDropdownItem('${key}','${o}')" ontouchend="selectDropdownItem('${key}','${o}')">${o}</div>`
   ).join('');
   list.style.display = 'block';
 }
@@ -779,7 +816,7 @@ function filterDropdown(key, val) {
 function selectDropdownItem(key, val) {
   updateField(key, val);
   const inp = document.getElementById(`dd-${key}`);
-  if (inp) inp.value = val;
+  if (inp) { inp.value = val; inp.blur(); }
   const list = document.getElementById(`ddlist-${key}`);
   if (list) list.style.display = 'none';
   activeDropdown = null;
@@ -892,39 +929,41 @@ function buildManualForm(mode) {
   const c = document.getElementById('manual-form');
 
   const row = (key, ctrl) =>
-    `<div class="form-row-inner"><div class="form-key">${key}</div>${ctrl}</div>`;
+    `<div class="form-row-inner"><div class="form-key">${key}</div><div class="form-val-wrap">${ctrl}</div></div>`;
 
-  const text = (id, ph, type='text') =>
-    `<input class="form-ctrl" id="${id}" type="${type}" placeholder="${ph}">`;
+  const text = (id, ph) =>
+    `<input class="form-ctrl" id="${id}" type="text" placeholder="${ph}">`;
 
-  const selWith = (id, opts, selected, onch='') =>
+  const nativeSelect = (id, opts, selected, onch='') =>
     `<select class="form-select-ctrl" id="${id}" ${onch}>${opts.map(o=>`<option ${o===selected?'selected':''}>${o}</option>`).join('')}</select>`;
 
-  const sel = (id, opts, onch='') => selWith(id, opts, opts[0], onch);
+  const amtDisplay = () =>
+    `<div class="form-picker" id="m-amount-display" onclick="openNumpad('m-amount')" style="color:var(--muted)">0.00</div><input type="hidden" id="m-amount" value="0">`;
+
+  const catPicker = (firstCat) =>
+    `<div class="form-picker" id="m-category-display" data-val="${firstCat}" onclick="openCategoryPicker()">${firstCat}<span class="picker-caret">›</span></div>`;
 
   if (mode === 'transfer') {
     c.innerHTML =
-      row('Amount', `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)" onblur="resolveAmt(this)">`) +
-      row('Date',   `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
-      row('From',   selWith('m-from', PAYMENT_METHODS, lastMethod, 'onchange="syncTransferTo()"')) +
-      row('To',     sel('m-to', PAYMENT_METHODS.filter(p=>p!==lastMethod))) +
+      row('Amount', amtDisplay()) +
+      row('Date',   `<input class="form-ctrl" id="m-date" type="date" value="${today}" style="color-scheme:dark">`) +
+      row('From',   nativeSelect('m-from', PAYMENT_METHODS, lastMethod, 'onchange="syncTransferTo()"')) +
+      row('To',     nativeSelect('m-to',   PAYMENT_METHODS.filter(p=>p!==lastMethod), PAYMENT_METHODS.find(p=>p!==lastMethod)||PAYMENT_METHODS[1])) +
       row('Memo',   text('m-memo','Optional'));
   } else {
+    const firstCat = EXPENSE_CATS[0];
     c.innerHTML =
-      row('Type',     selWith('m-type',['Expense','Income','Balance'],'Expense','onchange="updateManualCats()"')) +
-      row('Amount',   `<input class="form-ctrl" id="m-amount" type="text" inputmode="decimal" placeholder="0.00" oninput="fmtAmt(this)" onblur="resolveAmt(this)">`) +
-      row('Date',     `<input class="form-ctrl" id="m-date" type="date" value="${today}">`) +
+      row('Type',     nativeSelect('m-type',['Expense','Income','Balance'],'Expense','onchange="updateManualCats()"')) +
+      row('Amount',   amtDisplay()) +
+      row('Date',     `<input class="form-ctrl" id="m-date" type="date" value="${today}" style="color-scheme:dark">`) +
       row('Merchant', `<input class="form-ctrl" id="m-merchant" type="text" placeholder="Who or where" oninput="applyManualMerchantRules(this.value)">`) +
-      row('Via',      selWith('m-payment', PAYMENT_METHODS, lastMethod)) +
-      row('Category', `<select class="form-select-ctrl" id="m-category" onchange="updateManualGroup()">${EXPENSE_CATS.map(c=>`<option>${c}</option>`).join('')}</select>`) +
-      row('Group',    `<input class="form-readonly" id="m-group" readonly value="${CATEGORY_MAP[EXPENSE_CATS[0]]||''}">`) +
+      row('Via',      nativeSelect('m-payment', PAYMENT_METHODS, lastMethod)) +
+      row('Category', catPicker(firstCat)) +
+      row('Group',    `<div class="form-readonly-val" id="m-group">${CATEGORY_MAP[firstCat]||''}</div>`) +
       row('Memo',     text('m-memo','Optional')) +
-      row('Review', `<div class="review-btns" id="review-btns">
+      row('Review',   `<div class="review-btns" id="review-btns">
         ${REVIEW_OPTIONS.map((o,i) => `<button type="button" class="review-btn${i===0?' active':''}" onclick="selectReview(this,'${o}')">${o}</button>`).join('')}
       </div>`);
-
-    // Auto-focus amount
-    setTimeout(() => document.getElementById('m-amount')?.focus(), 100);
   }
 }
 
@@ -981,18 +1020,15 @@ function resolveAmt(el) {
 }
 
 function getRawAmt(id) {
-  const el  = document.getElementById(id);
+  const el = document.getElementById(id);
   if (!el) return 0;
-  // Try to evaluate first in case not yet resolved
-  const result = evalExpr(el.value);
-  if (result !== null) return result;
-  return parseFloat(el.value.replace(/,/g,'')) || 0;
+  return parseFloat(el.value) || 0;
 }
 
 function syncTransferTo() {
-  const from = document.getElementById('m-from').value;
+  const from  = document.getElementById('m-from')?.value;
   const toSel = document.getElementById('m-to');
-  if (!toSel) return;
+  if (!toSel || !from) return;
   const filtered = PAYMENT_METHODS.filter(p => p !== from);
   toSel.innerHTML = filtered.map(p=>`<option>${p}</option>`).join('');
 }
@@ -1004,16 +1040,17 @@ function applyManualMerchantRules(val) {
     if (sel) sel.value = rules.paymentMethod;
   }
   if (rules.category) {
-    const sel = document.getElementById('m-category');
-    if (sel) { sel.value = rules.category; updateManualGroup(); }
+    setPickerVal('m-category', rules.category);
+    updateManualGroup();
   }
 }
 
 function updateManualCats() {
-  const type = document.getElementById('m-type').value;
-  const catRow = document.getElementById('m-category')?.closest('.form-row-inner');
+  const typeEl = document.getElementById('m-type');
+  const type   = typeEl ? typeEl.value : 'Expense';
+  const catRow = document.getElementById('m-category-display')?.closest('.form-row-inner');
   const grpRow = document.getElementById('m-group')?.closest('.form-row-inner');
-  const revRow = document.getElementById('m-review')?.closest('.form-row-inner');
+  const revRow = document.getElementById('review-btns')?.closest('.form-row-inner');
   if (type === 'Balance') {
     if (catRow) catRow.style.display = 'none';
     if (grpRow) grpRow.style.display = 'none';
@@ -1024,14 +1061,17 @@ function updateManualCats() {
   if (grpRow) grpRow.style.display = '';
   if (revRow) revRow.style.display = '';
   const cats = type === 'Income' ? INCOME_CATS : EXPENSE_CATS;
-  document.getElementById('m-category').innerHTML = cats.map(c=>`<option>${c}</option>`).join('');
+  // Reset category to first in new list
+  const catDisp = document.getElementById('m-category-display');
+  if (catDisp) { catDisp.dataset.val = cats[0]; catDisp.childNodes[0].textContent = cats[0]; }
   updateManualGroup();
 }
 
 function updateManualGroup() {
-  const cat = document.getElementById('m-category')?.value;
-  const el  = document.getElementById('m-group');
-  if (el && cat) el.value = CATEGORY_MAP[cat] || '';
+  const catEl = document.getElementById('m-category-display');
+  const cat   = catEl?.dataset.val || '';
+  const el    = document.getElementById('m-group');
+  if (el && cat) el.textContent = CATEGORY_MAP[cat] || '';
 }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
@@ -1043,8 +1083,8 @@ async function submitManual() {
   if (currentMode === 'transfer') {
     const amount = getRawAmt('m-amount');
     const date   = document.getElementById('m-date').value;
-    const from   = document.getElementById('m-from').value;
-    const to     = document.getElementById('m-to').value;
+    const from   = document.getElementById('m-from')?.value || PAYMENT_METHODS[0];
+    const to     = document.getElementById('m-to')?.value || PAYMENT_METHODS[1];
     const memo   = document.getElementById('m-memo').value;
     if (!amount || !date) { alert('Amount and date are required.'); return; }
     if (from === to) { alert('From and To accounts must be different.'); return; }
@@ -1056,12 +1096,12 @@ async function submitManual() {
     d = { type:'Transfer', amount, category:'', paymentMethod:from };
     localStorage.setItem('lastPaymentMethod', from);
   } else {
-    const type     = document.getElementById('m-type').value;
+    const type     = document.getElementById('m-type')?.value || 'Expense';
     const amount   = getRawAmt('m-amount');
-    const date     = document.getElementById('m-date').value;
-    const merchant = document.getElementById('m-merchant').value;
-    const payment  = document.getElementById('m-payment').value;
-    const memo     = document.getElementById('m-memo').value;
+    const date     = document.getElementById('m-date')?.value || todayISO();
+    const merchant = document.getElementById('m-merchant')?.value || '';
+    const payment  = document.getElementById('m-payment')?.value || PAYMENT_METHODS[0];
+    const memo     = document.getElementById('m-memo')?.value || '';
     if (!amount || !date) { alert('Amount and date are required.'); return; }
     const sd = toSheetDate(date);
     if (type === 'Balance') {
@@ -1069,7 +1109,7 @@ async function submitManual() {
       d    = { type:'Balance', amount, paymentMethod:payment, merchant:`${payment} Balance` };
       localStorage.setItem('lastPaymentMethod', payment);
     } else {
-      const category = document.getElementById('m-category').value;
+      const category = document.getElementById('m-category-display')?.dataset.val || EXPENSE_CATS[0];
       const review   = getReviewVal();
       const amt   = type==='Income' ? Math.abs(amount) : -Math.abs(amount);
       const group = CATEGORY_MAP[category] || '';
@@ -1138,6 +1178,271 @@ function copyFailed() {
 loadSettings();
 // Restore last mode
 selectMode(currentMode);
+
+
+// ── GENERIC PICKER SHEET ─────────────────────────────────────────────────────
+
+let _pickerTarget  = null;
+let _pickerOptions = [];
+let _pickerCb      = null;
+
+function openPicker(targetId, options, current, cb) {
+  _pickerTarget  = targetId;
+  _pickerOptions = options || [];
+  _pickerCb      = cb || null;
+  const cur = current || document.getElementById(targetId+'-display')?.dataset.val || '';
+
+  const sheet = document.getElementById('picker-sheet');
+  const list  = document.getElementById('picker-list');
+  list.innerHTML = _pickerOptions.map(o =>
+    `<div class="picker-item ${o===cur?'picker-item-active':''}" ontouchend="selectPicker('${o}')" onclick="selectPicker('${o}')">${o}</div>`
+  ).join('');
+  sheet.style.display = 'flex';
+  haptic('light');
+}
+
+function selectPicker(val) {
+  const disp = document.getElementById(_pickerTarget + '-display');
+  if (disp) {
+    disp.dataset.val = val;
+    // Update text node (first child), preserve caret span
+    const caret = disp.querySelector('.picker-caret');
+    disp.textContent = val;
+    if (caret) disp.appendChild(caret);
+  }
+  closePicker();
+  if (_pickerCb) _pickerCb();
+  haptic('light');
+}
+
+function setPickerVal(id, val) {
+  const disp = document.getElementById(id + '-display');
+  if (disp) {
+    disp.dataset.val = val;
+    const caret = disp.querySelector('.picker-caret');
+    disp.textContent = val;
+    if (caret) disp.appendChild(caret);
+  }
+}
+
+function closePicker() {
+  document.getElementById('picker-sheet').style.display = 'none';
+}
+
+// ── CATEGORY PICKER ──────────────────────────────────────────────────────────
+
+function openCategoryPicker() {
+  const typeEl = document.getElementById('m-type-display');
+  const type   = typeEl?.dataset.val || 'Expense';
+  const cats   = type === 'Income' ? INCOME_CATS : EXPENSE_CATS;
+  const cur    = document.getElementById('m-category-display')?.dataset.val || '';
+
+  // Group by CATEGORY_MAP group
+  const groups = {};
+  cats.forEach(c => {
+    const g = CATEGORY_MAP[c] || 'Other';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(c);
+  });
+
+  const sheet    = document.getElementById('cat-sheet');
+  const list     = document.getElementById('cat-list');
+  const searchEl = document.getElementById('cat-search');
+  if (searchEl) searchEl.value = '';
+
+  list.innerHTML = renderCatList(cats, cur);
+  sheet.style.display = 'flex';
+  haptic('light');
+}
+
+function renderCatList(cats, cur) {
+  const groups = {};
+  cats.forEach(c => {
+    const g = CATEGORY_MAP[c] || 'Other';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(c);
+  });
+  return Object.entries(groups).map(([g, cs]) =>
+    `<div class="cat-group-label">${g}</div>` +
+    cs.map(c =>
+      `<div class="cat-item ${c===cur?'cat-item-active':''}" ontouchend="selectCategory('${c}')" onclick="selectCategory('${c}')">${c}</div>`
+    ).join('')
+  ).join('');
+}
+
+function filterCats(val) {
+  const typeEl = document.getElementById('m-type-display');
+  const type   = typeEl?.dataset.val || 'Expense';
+  const cats   = (type === 'Income' ? INCOME_CATS : EXPENSE_CATS).filter(c =>
+    c.toLowerCase().includes(val.toLowerCase())
+  );
+  const cur    = document.getElementById('m-category-display')?.dataset.val || '';
+  document.getElementById('cat-list').innerHTML = renderCatList(cats, cur);
+}
+
+function selectCategory(val) {
+  const disp = document.getElementById('m-category-display');
+  if (disp) {
+    disp.dataset.val = val;
+    const caret = disp.querySelector('.picker-caret');
+    disp.textContent = val;
+    if (caret) disp.appendChild(caret);
+  }
+  updateManualGroup();
+  closeCatPicker();
+  haptic('light');
+}
+
+function closeCatPicker() {
+  document.getElementById('cat-sheet').style.display = 'none';
+}
+
+
+
+// ── NUMPAD ────────────────────────────────────────────────────────────────────
+
+let npTarget  = null;
+let npExpr    = '0';
+
+function openNumpad(targetId) {
+  npTarget = targetId;
+  const hidden = document.getElementById(targetId);
+  npExpr = hidden?.value && hidden.value !== '0' ? hidden.value : '0';
+  renderNumpad();
+  document.getElementById('numpad-overlay').style.display = 'flex';
+  haptic('light');
+}
+
+function renderNumpad() {
+  const exprEl   = document.getElementById('np-expr');
+  const resultEl = document.getElementById('np-result');
+  if (!exprEl) return;
+
+  // Display with commas on number parts
+  exprEl.textContent = formatExprDisplay(npExpr);
+
+  // Show resolved result if expression
+  if (/[+\-×÷]/.test(npExpr) && npExpr.length > 1) {
+    const result = evalExpr(npExpr.replace(/×/g,'*').replace(/÷/g,'/'));
+    resultEl.textContent = result !== null ? '= ' + fmt(result) : '';
+  } else {
+    resultEl.textContent = '';
+  }
+}
+
+function formatExprDisplay(expr) {
+  // Format number segments with commas
+  return expr.replace(/[0-9]+(\.[0-9]*)*/g, seg => {
+    const parts = seg.split('.');
+    const int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.length > 1 ? int + '.' + parts[1] : int;
+  });
+}
+
+function npInput(char) {
+  haptic('light');
+  if (npExpr === '0' && char !== '.' && !/[+\-×÷]/.test(char)) {
+    npExpr = char;
+  } else {
+    // Prevent double operators
+    if (/[+\-×÷]/.test(char) && /[+\-×÷]/.test(npExpr.slice(-1))) {
+      npExpr = npExpr.slice(0, -1) + char;
+    } else {
+      npExpr += char;
+    }
+  }
+  renderNumpad();
+}
+
+function npDelete() {
+  haptic('light');
+  npExpr = npExpr.length > 1 ? npExpr.slice(0, -1) : '0';
+  renderNumpad();
+}
+
+function npDone() {
+  const raw    = npExpr.replace(/×/g,'*').replace(/÷/g,'/');
+  const result = evalExpr(raw) ?? parseFloat(raw) ?? 0;
+  const final  = Math.round(result * 100) / 100;
+
+  // Update hidden input
+  const hidden = document.getElementById(npTarget);
+  if (hidden) hidden.value = String(final);
+
+  // Update display div
+  const display = document.getElementById(npTarget + '-display');
+  if (display) {
+    display.textContent = fmt(final);
+    display.style.color = 'var(--text)';
+  }
+
+  document.getElementById('numpad-overlay').style.display = 'none';
+  haptic('medium');
+}
+
+function numpadOutside(e) {
+  if (e.target === document.getElementById('numpad-overlay')) {
+    npDone();
+  }
+}
+
 </script>
+
+
+<!-- GENERIC PICKER SHEET -->
+<div class="sheet-overlay" id="picker-sheet" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.6)" onclick="if(event.target===this)closePicker()">
+  <div style="width:100%;max-width:430px;background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border2);border-bottom:none;padding:8px 0 48px;max-height:60vh;display:flex;flex-direction:column;animation:slideUp 0.22s cubic-bezier(0.22,1,0.36,1)">
+    <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:8px auto 12px"></div>
+    <div id="picker-list" style="overflow-y:auto;padding:0 8px 8px"></div>
+  </div>
+</div>
+
+<!-- CATEGORY PICKER SHEET -->
+<div class="sheet-overlay" id="cat-sheet" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.6)" onclick="if(event.target===this)closeCatPicker()">
+  <div style="width:100%;max-width:430px;background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border2);border-bottom:none;padding:8px 0 48px;max-height:70vh;display:flex;flex-direction:column;animation:slideUp 0.22s cubic-bezier(0.22,1,0.36,1)">
+    <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:8px auto 12px"></div>
+    <div style="padding:0 16px 10px">
+      <input id="cat-search" type="text" placeholder="Search…" autocomplete="off"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none"
+        oninput="filterCats(this.value)">
+    </div>
+    <div id="cat-list" style="overflow-y:auto;padding:0 8px 8px"></div>
+  </div>
+</div>
+
+
+<!-- NUMPAD -->
+<div class="numpad-overlay" id="numpad-overlay" style="display:none" onclick="numpadOutside(event)">
+  <div class="numpad" id="numpad">
+    <div class="numpad-display">
+      <div class="numpad-expr" id="np-expr">0</div>
+      <div class="numpad-result" id="np-result"></div>
+    </div>
+    <div class="numpad-grid">
+      <button class="nk nk-num" onclick="npInput('7')">7</button>
+      <button class="nk nk-num" onclick="npInput('8')">8</button>
+      <button class="nk nk-num" onclick="npInput('9')">9</button>
+      <button class="nk nk-op"  onclick="npInput('÷')">÷</button>
+
+      <button class="nk nk-num" onclick="npInput('4')">4</button>
+      <button class="nk nk-num" onclick="npInput('5')">5</button>
+      <button class="nk nk-num" onclick="npInput('6')">6</button>
+      <button class="nk nk-op"  onclick="npInput('×')">×</button>
+
+      <button class="nk nk-num" onclick="npInput('1')">1</button>
+      <button class="nk nk-num" onclick="npInput('2')">2</button>
+      <button class="nk nk-num" onclick="npInput('3')">3</button>
+      <button class="nk nk-op"  onclick="npInput('-')">−</button>
+
+      <button class="nk nk-num nk-zero" onclick="npInput('0')">0</button>
+      <button class="nk nk-num" onclick="npInput('.')">.</button>
+      <button class="nk nk-op"  onclick="npInput('+')">+</button>
+
+      <button class="nk nk-del" style="grid-column:span 3" onclick="npDelete()">⌫ delete</button>
+      <button class="nk nk-done" onclick="npDone()">Done</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
